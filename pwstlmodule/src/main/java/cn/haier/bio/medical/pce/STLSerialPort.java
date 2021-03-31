@@ -20,6 +20,7 @@ class STLSerialPort implements PWSerialPortListener {
     private HandlerThread thread;
     private PWSerialPortHelper helper;
 
+    private boolean ready = false;
     private boolean enabled = false;
     private WeakReference<ISTLListener> listener;
 
@@ -164,6 +165,12 @@ class STLSerialPort implements PWSerialPortListener {
             return this.ignorePackage();
         }
         this.buffer.discardReadBytes();
+        if (!this.ready) {
+            this.ready = true;
+            if (null != this.listener && null != this.listener.get()) {
+                this.listener.get().onSTLReady();
+            }
+        }
         if (null != this.listener && null != this.listener.get()) {
             this.listener.get().onSTLPrint("STLSerialPort Recv:" + STLTools.bytes2HexString(data, true, ", "));
         }
@@ -184,6 +191,7 @@ class STLSerialPort implements PWSerialPortListener {
         if (!this.isInitialized() || !helper.equals(this.helper)) {
             return;
         }
+        this.ready = false;
         this.buffer.clear();
         if (null != this.listener && null != this.listener.get()) {
             this.listener.get().onSTLConnected();
@@ -205,6 +213,7 @@ class STLSerialPort implements PWSerialPortListener {
         if (!this.isInitialized() || !helper.equals(this.helper)) {
             return;
         }
+        this.ready = false;
         if (null != this.listener && null != this.listener.get()) {
             this.listener.get().onSTLException(throwable);
         }
