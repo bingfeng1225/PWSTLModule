@@ -29,6 +29,11 @@ public class MainActivity extends AppCompatActivity implements ISTLListener {
     }
 
     @Override
+    public void onSTLReady() {
+
+    }
+
+    @Override
     public void onSTLConnected() {
 
     }
@@ -44,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements ISTLListener {
     }
 
     @Override
-    public byte[] onSTLPackageReceived(byte[] data) {
+    public void onSTLPackageReceived(byte[] data) {
         ByteBuf buffer = Unpooled.buffer(4);
         buffer.writeBytes(data);
         buffer.skipBytes(1);
@@ -57,6 +62,5 @@ public class MainActivity extends AppCompatActivity implements ISTLListener {
         byte alarm = buffer.readByte();
 
         buffer.release();
-        return new byte[0];
     }
 }
