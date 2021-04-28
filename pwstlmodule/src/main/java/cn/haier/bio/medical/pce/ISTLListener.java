@@ -6,4 +6,5 @@ public interface ISTLListener {
     void onSTLPrint(String message);
     void onSTLException(Throwable throwable);
     void onSTLPackageReceived(byte[] data);
+    void onSTLResponseReceived(byte[] data);
 }

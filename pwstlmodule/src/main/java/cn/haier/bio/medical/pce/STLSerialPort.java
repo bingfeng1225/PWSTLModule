@@ -55,8 +55,38 @@ class STLSerialPort implements PWSerialPortListener {
         this.destoryBuffer();
     }
 
+    public void openMachine() {
+        if (!this.isInitialized() || !this.enabled) {
+            return;
+        }
+        Message msg = Message.obtain();
+        msg.what = 0xC2;
+        msg.obj = STLTools.generateControlCommand(true);
+        this.handler.sendMessage(msg);
+    }
+
+    public void closeMachine() {
+        if (!this.isInitialized() || !this.enabled) {
+            return;
+        }
+        Message msg = Message.obtain();
+        msg.what = 0xC2;
+        msg.obj = STLTools.generateControlCommand(false);
+        this.handler.sendMessage(msg);
+    }
+
     public void changeListener(ISTLListener listener) {
         this.listener = new WeakReference<>(listener);
+    }
+
+    public void changeParameter(int dutyCycle, int frequency, int temperature) {
+        if (!this.isInitialized() || !this.enabled) {
+            return;
+        }
+        Message msg = Message.obtain();
+        msg.what = 0xC3;
+        msg.obj = STLTools.generateParameterCommand(dutyCycle, frequency, temperature);
+        this.handler.sendMessage(msg);
     }
 
     private boolean isInitialized() {
@@ -148,23 +178,38 @@ class STLSerialPort implements PWSerialPortListener {
         if (!STLTools.checkHeader(header)) {
             return this.ignorePackage();
         }
-        int index = STLTools.indexOf(this.buffer, STLTools.TAILER);
-        if (index == -1) {
+
+        int command = 0xFF & this.buffer.getByte(1);
+        if (!STLTools.checkCommand(command)) {
+            this.buffer.skipBytes(STLTools.HEADER.length);
+            this.buffer.discardReadBytes();
+            if (null != this.listener && null != this.listener.get()) {
+                this.listener.get().onSTLPrint("STLSerialPort 指令错误，丢掉正常的包头以免重复判断");
+            }
+            return this.ignorePackage();
+        }
+
+        int length = 0xFF & this.buffer.getByte(2);
+        if (this.buffer.readableBytes() < length) {
             return true;
         }
 
-        this.buffer.markReaderIndex();
-        byte[] data = new byte[index + STLTools.TAILER.length];
-        this.buffer.readBytes(data, 0, data.length);
-
-        if (!STLTools.checkFrame(data)) {
-            this.buffer.resetReaderIndex();
-            //当前包不合法 丢掉正常的包头以免重复判断
+        byte[] tailer = new byte[STLTools.TAILER.length];
+        this.buffer.getBytes(length - 1, tailer);
+        if (!STLTools.checkTailer(tailer)) {
             this.buffer.skipBytes(STLTools.HEADER.length);
             this.buffer.discardReadBytes();
+            if (null != this.listener && null != this.listener.get()) {
+                this.listener.get().onSTLPrint("STLSerialPort 指令尾部不符，丢掉正常的包头以免重复判断");
+            }
             return this.ignorePackage();
         }
+
+        this.buffer.markReaderIndex();
+        byte[] data = new byte[length];
+        this.buffer.readBytes(data, 0, data.length);
         this.buffer.discardReadBytes();
+
         if (!this.ready) {
             this.ready = true;
             if (null != this.listener && null != this.listener.get()) {
@@ -176,14 +221,9 @@ class STLSerialPort implements PWSerialPortListener {
         }
         Message msg = Message.obtain();
         msg.obj = data;
+        msg.what = command;
         this.handler.sendMessage(msg);
         return true;
-    }
-
-    private void processPackageReceived(byte[] data) {
-        if (null != this.listener && null != this.listener.get()) {
-            this.listener.get().onSTLPackageReceived(data);
-        }
     }
 
     @Override
@@ -246,7 +286,22 @@ class STLSerialPort implements PWSerialPortListener {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            STLSerialPort.this.processPackageReceived((byte[]) msg.obj);
+            switch (msg.what) {
+                case 0xC0:
+                    if (null != listener && null != listener.get()) {
+                        listener.get().onSTLPackageReceived((byte[]) msg.obj);
+                    }
+                    break;
+                case 0xC1:
+                    if (null != listener && null != listener.get()) {
+                        listener.get().onSTLResponseReceived((byte[]) msg.obj);
+                    }
+                    break;
+                case 0xC2:
+                case 0xC3:
+                    STLSerialPort.this.write((byte[]) msg.obj);
+                    break;
+            }
         }
     }
 }

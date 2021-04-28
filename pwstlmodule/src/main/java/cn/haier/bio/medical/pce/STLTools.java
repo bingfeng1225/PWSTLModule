@@ -15,12 +15,53 @@ class STLTools {
         return Arrays.equals(HEADER, header);
     }
 
-    public static boolean checkFrame(byte[] data) {
-        byte sum = data[data.length - 2];
-        byte check = computeL8SumCode(data, 1, data.length - 3);
-        return (sum == check);
+    public static boolean checkTailer(byte[] tailer) {
+        return Arrays.equals(TAILER, tailer);
     }
 
+    public static boolean checkCommand(int command) {
+        if (command == 0xC0) {
+            return true;
+        }
+        if (command == 0xC1) {
+            return true;
+        }
+        return false;
+    }
+
+    public static byte[] generateControlCommand(boolean open) {
+        ByteBuf buffer = Unpooled.buffer(4);
+        buffer.writeBytes(HEADER);
+        buffer.writeByte(0xC2);
+        buffer.writeByte(0x05);
+        buffer.writeByte(open ? 0x01 : 0x00);
+        buffer.writeBytes(TAILER);
+        byte[] data = new byte[buffer.readableBytes()];
+        buffer.readBytes(data, 0, data.length);
+        buffer.release();
+        return data;
+    }
+
+    public static byte[] generateParameterCommand(int dutyCycle, int frequency, int temperature) {
+        ByteBuf buffer = Unpooled.buffer(4);
+        buffer.writeBytes(HEADER);
+        buffer.writeByte(0xC3);
+        buffer.writeByte(0x08);
+
+        buffer.writeByte(dutyCycle);
+        buffer.writeByte(frequency);
+        buffer.writeByte(temperature);
+
+        byte[] checks = new byte[buffer.readableBytes()];
+        buffer.getBytes(0, checks);
+        buffer.writeByte(computeL8SumCode(checks, 3, 3));
+        buffer.writeBytes(TAILER);
+
+        byte[] data = new byte[buffer.readableBytes()];
+        buffer.readBytes(data, 0, data.length);
+        buffer.release();
+        return data;
+    }
 
     public static String bytes2HexString(byte[] data, boolean hexFlag, String separator) {
         if (data == null) {

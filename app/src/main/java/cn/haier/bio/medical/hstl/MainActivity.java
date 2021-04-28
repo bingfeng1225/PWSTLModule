@@ -1,7 +1,9 @@
 package cn.haier.bio.medical.hstl;
 
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 
 import cn.haier.bio.medical.pce.ISTLListener;
 import cn.haier.bio.medical.pce.STLManager;
@@ -16,7 +18,11 @@ public class MainActivity extends AppCompatActivity implements ISTLListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         manager = STLManager.getInstance();
-        manager.init("/dev/ttyS3");
+        String path = "/dev/ttyS3"; //智能电子串口地址
+        if ("magton".equals(Build.MODEL)) {
+            path = "/dev/ttyS7";    //沃特电子串口地址
+        }
+        manager.init(path);
         manager.changeListener(this);
         manager.enable();
     }
@@ -62,5 +68,24 @@ public class MainActivity extends AppCompatActivity implements ISTLListener {
         byte alarm = buffer.readByte();
 
         buffer.release();
+    }
+
+    @Override
+    public void onSTLResponseReceived(byte[] data) {
+
+    }
+
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.button:
+                manager.openMachine();
+                break;
+            case R.id.button2:
+                manager.closeMachine();
+                break;
+            case R.id.button3:
+                manager.changeParameter(90,60,187);
+                break;
+        }
     }
 }

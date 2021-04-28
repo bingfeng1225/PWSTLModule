@@ -29,6 +29,7 @@ public class STLManager {
         }
     }
 
+
     public void enable() {
         if (null != this.serialPort) {
             this.serialPort.enable();
@@ -48,9 +49,27 @@ public class STLManager {
         }
     }
 
+    public void openMachine() {
+        if (null != this.serialPort) {
+            this.serialPort.openMachine();
+        }
+    }
+
+    public void closeMachine() {
+        if (null != this.serialPort) {
+            this.serialPort.closeMachine();
+        }
+    }
+
     public void changeListener(ISTLListener listener) {
         if (null != this.serialPort) {
             this.serialPort.changeListener(listener);
+        }
+    }
+
+    public void changeParameter(int dutyCycle, int frequency, int temperature) {
+        if (null != this.serialPort) {
+            this.serialPort.changeParameter(dutyCycle, frequency, temperature);
         }
     }
 }
