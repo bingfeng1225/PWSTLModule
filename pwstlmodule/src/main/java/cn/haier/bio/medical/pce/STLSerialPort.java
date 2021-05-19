@@ -293,6 +293,7 @@ class STLSerialPort implements PWSerialPortListener {
                     }
                     break;
                 case 0xC1:
+                case 0xC4:
                     if (null != listener && null != listener.get()) {
                         listener.get().onSTLResponseReceived((byte[]) msg.obj);
                     }
