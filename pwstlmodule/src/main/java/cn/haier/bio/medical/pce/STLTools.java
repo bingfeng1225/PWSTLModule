@@ -26,6 +26,9 @@ class STLTools {
         if (command == 0xC1) {
             return true;
         }
+        if (command == 0xC4) {
+            return true;
+        }
         return false;
     }
 
